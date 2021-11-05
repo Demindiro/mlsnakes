@@ -43,14 +43,13 @@ impl Default for NeuralNet {
 	}
 }
 
-impl super::Dna for NeuralNet {
-	fn serialize(&self) -> Box<[u8]> {
-		self.layers.iter().flat_map(|m| m.0).flat_map(|r| r.0).flat_map(f32::to_ne_bytes).collect()
+impl super::Dna<f32> for NeuralNet {
+	fn serialize(&self) -> Box<[f32]> {
+		self.layers.iter().flat_map(|m| m.0).flat_map(|r| r.0).collect()
 	}
 
-	fn deserialize(dna: Box<[u8]>) -> Self {
-		let e = dna.chunks(4).map(|e| f32::from_ne_bytes(e.try_into().unwrap())).collect::<Vec<_>>();
-		let r = e.chunks(4).map(|r| Vector(r.try_into().unwrap())).collect::<Vec<_>>();
+	fn deserialize(dna: Box<[f32]>) -> Self {
+		let r = dna.chunks(4).map(|r| Vector(r.try_into().unwrap())).collect::<Vec<_>>();
 		let m = r.chunks(4).map(|m| Matrix(m.try_into().unwrap()));
 		Self { layers: m.collect::<Vec<_>>().try_into().unwrap() }
 	}
