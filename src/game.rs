@@ -129,10 +129,23 @@ where
 	pub fn step(&mut self, direction: Dir) {
 		let pred = |p: Pos| self.cells[usize::from(p.y)][usize::from(p.x)] == Cell::Apple;
 		if let Some((head, tail)) = self.snake.mov(pred, direction) {
+			(self.cells[usize::from(head.y)][usize::from(head.x)] == Cell::Apple)
+				.then(|| self.place_apple());
 			self.cells[usize::from(head.y)][usize::from(head.x)] = Cell::Snake;
 			self.cells[usize::from(tail.y)][usize::from(tail.x)] = Cell::Empty;
 		} else {
 			todo!();
+		}
+	}
+
+	fn place_apple(&mut self) {
+		loop {
+			let mut r = thread_rng();
+			let (x, y) = (r.gen_range(0..W), r.gen_range(0..H));
+			if self.cells[usize::from(y)][usize::from(x)] == Cell::Empty {
+				self.cells[usize::from(y)][usize::from(x)] = Cell::Apple;
+				break;
+			}
 		}
 	}
 }
@@ -166,18 +179,17 @@ where
 {
 	fn default() -> Self {
 		let mut cells = [[Cell::Empty; W as usize]; H as usize];
-		let mut r = thread_rng();
-		let (x, y) = (r.gen_range(0..W), r.gen_range(0..H));
-		cells[usize::from(y)][usize::from(x)] = Cell::Apple;
 		let (x, y) = (W / 2, H / 2);
 		let snake = Snake::new([Pos::new(x, y + 1), Pos::new(x, y), Pos::new(x, y - 1)]);
 		for p in snake.body.iter().take((snake.head + 1) & (snake.body.len() - 1)) {
 			cells[usize::from(p.y)][usize::from(p.x)] = Cell::Snake;
 		}
-		Self {
+		let mut s = Self {
 			cells,
 			snake,
-		}
+		};
+		s.place_apple();
+		s
 	}
 }
 
