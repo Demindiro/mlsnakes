@@ -134,8 +134,11 @@ where
 			if head.x >= W || head.y >= H {
 				return false;
 			}
+			// Read & set cells now so we don't accidently overwrite the apple.
+			let cell = self.cells[usize::from(head.y)][usize::from(head.x)];
+			self.cells[usize::from(head.y)][usize::from(head.x)] = Cell::Snake;
 			self.cells[usize::from(tail.y)][usize::from(tail.x)] = Cell::Empty;
-			match self.cells[usize::from(head.y)][usize::from(head.x)] {
+			match cell {
 				Cell::Empty => (),
 				Cell::Apple => {
 					self.apples_eaten += 1;
@@ -143,7 +146,6 @@ where
 				}
 				Cell::Snake => return false,
 			}
-			self.cells[usize::from(head.y)][usize::from(head.x)] = Cell::Snake;
 			true
 		} else {
 			false
