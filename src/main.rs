@@ -2,6 +2,8 @@
 #![feature(generic_const_exprs)]
 
 mod game;
+mod neural;
+
 use game::*;
 
 use std::thread;
