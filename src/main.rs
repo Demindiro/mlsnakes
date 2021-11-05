@@ -1,10 +1,14 @@
 #![feature(associated_type_bounds)]
+#![feature(destructuring_assignment)]
 #![feature(generic_const_exprs)]
 
+mod dna;
 mod game;
 mod neural;
 
+use dna::*;
 use game::*;
+use neural::*;
 
 use std::thread;
 use std::time::Duration;

@@ -1,4 +1,6 @@
+use core::mem;
 use core::ops::Mul;
+use rand::{Rng, thread_rng, rngs::ThreadRng};
 
 #[derive(Clone, Copy, Debug)]
 pub struct Vector<const L: usize>([f32; L]);
@@ -38,5 +40,31 @@ impl NeuralNet {
 impl Default for NeuralNet {
 	fn default() -> Self {
 		Self { layers: [Matrix([Vector([0.0; 4]); 4]); 3] }
+	}
+}
+
+impl super::Dna for NeuralNet {
+	fn serialize(&self) -> Box<[u8]> {
+		self.layers.iter().flat_map(|m| m.0).flat_map(|r| r.0).flat_map(f32::to_ne_bytes).collect()
+	}
+
+	fn deserialize(dna: Box<[u8]>) -> Self {
+		let e = dna.chunks(4).map(|e| f32::from_ne_bytes(e.try_into().unwrap())).collect::<Vec<_>>();
+		let r = e.chunks(4).map(|r| Vector(r.try_into().unwrap())).collect::<Vec<_>>();
+		let m = r.chunks(4).map(|m| Matrix(m.try_into().unwrap()));
+		Self { layers: m.collect::<Vec<_>>().try_into().unwrap() }
+	}
+
+	fn mutate(&mut self) {
+		let mut r = thread_rng();
+		self.layers[r.gen_range(0..3)].0[r.gen_range(0..4)].0[r.gen_range(0..4)] = r.gen();
+	}
+
+	fn spawn() -> Self {
+		let e = |rng: &mut ThreadRng| rng.gen();
+		let v = |rng: &mut _| Vector([e(rng), e(rng), e(rng), e(rng)]);
+		let m = |rng: &mut _| Matrix([v(rng), v(rng), v(rng), v(rng)]);
+		let mut r = thread_rng();
+		Self { layers: [m(&mut r), m(&mut r), m(&mut r)] }
 	}
 }
