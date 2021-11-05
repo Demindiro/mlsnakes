@@ -17,8 +17,8 @@ macro_rules! unchecked_assert_eq {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(align(4))]
 pub struct Pos {
-	x: u8,
-	y: u8,
+	pub x: u8,
+	pub y: u8,
 }
 
 impl Pos {
@@ -114,6 +114,8 @@ where
 	[(); W as usize]: Sized,
 	[(); H as usize]: Sized,
 {
+	pub apples_eaten: usize,
+	apple: Pos,
 	snake: Snake,
 	cells: [[Cell; W as usize]; H as usize],
 }
@@ -127,19 +129,37 @@ where
 	///
 	/// true if the snake lives, false if dead.
 	pub fn step(&mut self, direction: Dir) -> bool {
-		let pred = |p: Pos| self.cells[usize::from(p.y)][usize::from(p.x)] == Cell::Apple;
+		let pred = |p: Pos| self.cells.get(usize::from(p.y)).and_then(|r| r.get(usize::from(p.x))) == Some(&Cell::Apple);
 		if let Some((head, tail)) = self.snake.mov(pred, direction) {
+			if head.x >= W || head.y >= H {
+				return false;
+			}
+			self.cells[usize::from(tail.y)][usize::from(tail.x)] = Cell::Empty;
 			match self.cells[usize::from(head.y)][usize::from(head.x)] {
 				Cell::Empty => (),
-				Cell::Apple => self.place_apple(),
+				Cell::Apple => {
+					self.apples_eaten += 1;
+					self.place_apple()
+				}
 				Cell::Snake => return false,
 			}
 			self.cells[usize::from(head.y)][usize::from(head.x)] = Cell::Snake;
-			self.cells[usize::from(tail.y)][usize::from(tail.x)] = Cell::Empty;
 			true
 		} else {
 			false
 		}
+	}
+
+	pub fn apple(&self) -> Pos {
+		self.apple
+	}
+
+	pub fn head(&self) -> Pos {
+		self.snake.body[self.snake.head]
+	}
+
+	pub fn get(&self, pos: Pos) -> Option<Cell> {
+		self.cells.get(usize::from(pos.y)).and_then(|r| r.get(usize::from(pos.x))).copied()
 	}
 
 	fn place_apple(&mut self) {
@@ -148,6 +168,7 @@ where
 			let (x, y) = (r.gen_range(0..W), r.gen_range(0..H));
 			if self.cells[usize::from(y)][usize::from(x)] == Cell::Empty {
 				self.cells[usize::from(y)][usize::from(x)] = Cell::Apple;
+				self.apple = Pos::new(x, y);
 				break;
 			}
 		}
@@ -189,6 +210,8 @@ where
 			cells[usize::from(p.y)][usize::from(p.x)] = Cell::Snake;
 		}
 		let mut s = Self {
+			apples_eaten: 0,
+			apple: Pos::new(0, 0),
 			cells,
 			snake,
 		};

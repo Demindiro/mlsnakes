@@ -119,6 +119,10 @@ where
 
 		max_score
 	}
+
+	pub fn best(&self) -> &P {
+		&self.0[0]
+	}
 }
 
 impl<P, T> Default for Population<P, T>
