@@ -15,17 +15,20 @@ use std::time::Duration;
 use std::io::{stdout, Write};
 
 fn main() {
-	let mut game = Game::<8, 8>::default();
-	let dirs = [Dir::Up, Dir::Up, Dir::Right, Dir::Down, Dir::Right, Dir::Down, Dir::Left, Dir::Left];
-	let dirs = [Dir::Down];
-	let mut dirs = dirs.iter().copied().cycle();
+	let mut pop = Population::<NeuralNet, _>::default();
+	let params = PopulationParams {
+		elite_size: 128,
+		total_size: 1024,
+		mutate: 5..20,
+	};
 	loop {
-		println!("{}", &game);
-		std::thread::sleep(Duration::from_millis(333));
-		if !game.step(dirs.next().unwrap()) {
-			println!("The snake died!");
-			break;
-		}
-		print!("\x1b[{}A\r", 8);
+		let best = pop.step(&params, |pop| {
+			let mut game = Game::<8, 8>::default();
+			while game.step(Dir::Up) {
+				todo!()
+			}
+			100
+		});
+		println!("{}", best);
 	}
 }
