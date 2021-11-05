@@ -1,9 +1,9 @@
 use core::cmp::Ordering;
 use core::marker::PhantomData;
 use core::ops::Range;
-use std::collections::BinaryHeap;
-use rand::{Rng, thread_rng};
+use rand::{thread_rng, Rng};
 use rayon::prelude::*;
+use std::collections::BinaryHeap;
 
 pub trait Dna<T>
 where
@@ -17,11 +17,13 @@ where
 
 	fn spawn() -> Self;
 
-	fn mix(a: &Box<[T]>, b: &Box<[T]>) -> Box<[T]>{
+	fn mix(a: &Box<[T]>, b: &Box<[T]>) -> Box<[T]> {
 		assert_eq!(a.len(), b.len(), "dna strings are not of the same size");
 		let mut r = thread_rng();
 		let mut o = a.clone();
-		o.iter_mut().zip(b.iter()).for_each(|(o, b)| { r.gen::<bool>().then(|| *o = b.clone()); });
+		o.iter_mut().zip(b.iter()).for_each(|(o, b)| {
+			r.gen::<bool>().then(|| *o = b.clone());
+		});
 		o
 	}
 }
@@ -52,18 +54,26 @@ where
 		// Breed population
 		let len = self.0.len();
 		let mut pop = Vec::with_capacity(params.total_size);
-		pop.resize_with(
-			params.total_size - len,
-			|| P::deserialize(P::mix(&self.0[r.gen_range(0..len)].serialize(), &self.0[r.gen_range(0..len)].serialize())),
-		);
+		pop.resize_with(params.total_size - len, || {
+			P::deserialize(P::mix(
+				&self.0[r.gen_range(0..len)].serialize(),
+				&self.0[r.gen_range(0..len)].serialize(),
+			))
+		});
 		pop.extend(self.0.drain(..));
 
 		// Mutate some specimen
 		let len = pop.len();
-		params.mutate.clone().for_each(|_| pop[r.gen_range(0..len)].mutate());
+		params
+			.mutate
+			.clone()
+			.for_each(|_| pop[r.gen_range(0..len)].mutate());
 
 		// Test each specimen
-		let pop = pop.into_par_iter().map(|p| Entry { score: test(&p), specimen: p, _marker: PhantomData }).collect::<Vec<_>>();
+		let pop = pop
+			.into_par_iter()
+			.map(|p| Entry { score: test(&p), specimen: p, _marker: PhantomData })
+			.collect::<Vec<_>>();
 
 		// Collect the best specimens
 		struct Entry<P, T>
@@ -90,7 +100,8 @@ where
 		where
 			P: Dna<T>,
 			T: Clone,
-		{}
+		{
+		}
 
 		impl<P, T> PartialOrd for Entry<P, T>
 		where
@@ -120,7 +131,8 @@ where
 		}
 
 		// Save best specimens.
-		self.0.extend(bh.into_iter().take(params.elite_size).map(|e| e.specimen));
+		self.0
+			.extend(bh.into_iter().take(params.elite_size).map(|e| e.specimen));
 
 		max_score
 	}

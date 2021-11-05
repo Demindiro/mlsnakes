@@ -10,17 +10,13 @@ use dna::*;
 use game::*;
 use neural::*;
 
+use std::io::{stdout, Write};
 use std::thread;
 use std::time::Duration;
-use std::io::{stdout, Write};
 
 fn main() {
 	let mut pop = Population::<NeuralNet, _>::default();
-	let params = PopulationParams {
-		elite_size: 512,
-		total_size: 8192 * 4,
-		mutate: 8..128,
-	};
+	let params = PopulationParams { elite_size: 512, total_size: 8192 * 4, mutate: 8..128 };
 
 	let threshold = 50;
 
@@ -28,7 +24,10 @@ fn main() {
 		let d = |d: f32| d.signum() * (1.0 / (d.abs() + 1.0));
 
 		let (a, h) = (game.apple(), game.head());
-		let (dx, dy) = (i16::from(a.x) - i16::from(h.x), i16::from(a.y) - i16::from(h.y));
+		let (dx, dy) = (
+			i16::from(a.x) - i16::from(h.x),
+			i16::from(a.y) - i16::from(h.y),
+		);
 		let mut v = Vector([0.0, 0.0, 0.0, 0.0, d(f32::from(dx)), d(f32::from(dy)), 1.0]);
 
 		let is_obstacle = |x: i16, y: i16| {

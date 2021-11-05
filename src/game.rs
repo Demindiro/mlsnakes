@@ -1,6 +1,6 @@
 use core::fmt;
 use core::mem;
-use rand::{Rng, thread_rng};
+use rand::{thread_rng, Rng};
 
 macro_rules! unchecked_assert {
 	($cond:expr) => {{
@@ -52,11 +52,7 @@ impl Snake {
 		(1..mem::size_of::<usize>() * 8).for_each(|i| l |= l >> i);
 		l += 1;
 		body.resize(l, Pos { x: 0, y: 0 });
-		Self {
-			body,
-			head,
-			tail: 0,
-		}
+		Self { body, head, tail: 0 }
 	}
 
 	/// # Returns
@@ -129,7 +125,12 @@ where
 	///
 	/// true if the snake lives, false if dead.
 	pub fn step(&mut self, direction: Dir) -> bool {
-		let pred = |p: Pos| self.cells.get(usize::from(p.y)).and_then(|r| r.get(usize::from(p.x))) == Some(&Cell::Apple);
+		let pred = |p: Pos| {
+			self.cells
+				.get(usize::from(p.y))
+				.and_then(|r| r.get(usize::from(p.x)))
+				== Some(&Cell::Apple)
+		};
 		if let Some((head, tail)) = self.snake.mov(pred, direction) {
 			if head.x >= W || head.y >= H {
 				return false;
@@ -161,7 +162,10 @@ where
 	}
 
 	pub fn get(&self, pos: Pos) -> Option<Cell> {
-		self.cells.get(usize::from(pos.y)).and_then(|r| r.get(usize::from(pos.x))).copied()
+		self.cells
+			.get(usize::from(pos.y))
+			.and_then(|r| r.get(usize::from(pos.x)))
+			.copied()
 	}
 
 	fn place_apple(&mut self) {
@@ -208,15 +212,14 @@ where
 		let mut cells = [[Cell::Empty; W as usize]; H as usize];
 		let (x, y) = (W / 2, H / 2);
 		let snake = Snake::new([Pos::new(x, y + 1), Pos::new(x, y), Pos::new(x, y - 1)]);
-		for p in snake.body.iter().take((snake.head + 1) & (snake.body.len() - 1)) {
+		for p in snake
+			.body
+			.iter()
+			.take((snake.head + 1) & (snake.body.len() - 1))
+		{
 			cells[usize::from(p.y)][usize::from(p.x)] = Cell::Snake;
 		}
-		let mut s = Self {
-			apples_eaten: 0,
-			apple: Pos::new(0, 0),
-			cells,
-			snake,
-		};
+		let mut s = Self { apples_eaten: 0, apple: Pos::new(0, 0), cells, snake };
 		s.place_apple();
 		s
 	}
@@ -232,15 +235,40 @@ mod test {
 		s.mov(false, Dir::Down).unwrap(); // head = 3
 		s.mov(false, Dir::Down).unwrap(); // head = 0
 		s.mov(false, Dir::Down).unwrap(); // head = 1
-		assert_eq!(&s.body, &[Pos::new(2, 2), Pos::new(2, 3), Pos::new(2, 0), Pos::new(2, 1)]);
+		assert_eq!(
+			&s.body,
+			&[
+				Pos::new(2, 2),
+				Pos::new(2, 3),
+				Pos::new(2, 0),
+				Pos::new(2, 1)
+			]
+		);
 		s.mov(true, Dir::Right).unwrap(); // head = 2
 		s.mov(false, Dir::Right).unwrap(); // head = 3
 		s.mov(false, Dir::Right).unwrap(); // head = 0
-		assert_eq!(&s.body, &[Pos::new(5, 3), Pos::new(2, 3), Pos::new(3, 3), Pos::new(4, 3)]);
+		assert_eq!(
+			&s.body,
+			&[
+				Pos::new(5, 3),
+				Pos::new(2, 3),
+				Pos::new(3, 3),
+				Pos::new(4, 3)
+			]
+		);
 		s.mov(true, Dir::Up).unwrap(); // head = 1
-		assert_eq!(&s.body, &[
-			Pos::new(5, 3), Pos::new(5, 2), Pos::new(3, 3), Pos::new(4, 3),
-			Pos::new(0, 0), Pos::new(0, 0), Pos::new(3, 3), Pos::new(4, 3),
-		]);
+		assert_eq!(
+			&s.body,
+			&[
+				Pos::new(5, 3),
+				Pos::new(5, 2),
+				Pos::new(3, 3),
+				Pos::new(4, 3),
+				Pos::new(0, 0),
+				Pos::new(0, 0),
+				Pos::new(3, 3),
+				Pos::new(4, 3),
+			]
+		);
 	}
 }

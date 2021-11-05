@@ -1,6 +1,6 @@
 use core::mem;
 use core::ops::Mul;
-use rand::{Rng, thread_rng, rngs::ThreadRng};
+use rand::{rngs::ThreadRng, thread_rng, Rng};
 
 #[derive(Clone, Copy, Debug)]
 pub struct Vector<const L: usize>(pub [f32; L]);
@@ -29,7 +29,9 @@ impl<const W: usize, const H: usize> Mul<&Vector<W>> for &Matrix<W, H> {
 
 	fn mul(self, rhs: &Vector<W>) -> Self::Output {
 		let mut v = Vector([0.0; H]);
-		v.0.iter_mut().zip(self.0.iter()).for_each(|(o, i)| *o = rhs.dot(i));
+		v.0.iter_mut()
+			.zip(self.0.iter())
+			.for_each(|(o, i)| *o = rhs.dot(i));
 		v
 	}
 }
@@ -59,31 +61,50 @@ impl Default for NeuralNet {
 				Matrix([Vector([0.0; I]); L0]),
 				Matrix([Vector([0.0; L0]); L1]),
 				Matrix([Vector([0.0; L1]); O]),
-			)
+			),
 		}
 	}
 }
 
 impl super::Dna<f32> for NeuralNet {
 	fn serialize(&self) -> Box<[f32]> {
-		let a = self.layers.0.0.iter().flat_map(|r| r.0);
-		let b = self.layers.1.0.iter().flat_map(|r| r.0);
-		let c = self.layers.2.0.iter().flat_map(|r| r.0);
+		let a = self.layers.0 .0.iter().flat_map(|r| r.0);
+		let b = self.layers.1 .0.iter().flat_map(|r| r.0);
+		let c = self.layers.2 .0.iter().flat_map(|r| r.0);
 		a.chain(b).chain(c).collect()
 	}
 
 	fn deserialize(dna: Box<[f32]>) -> Self {
 		let (a, bc) = dna.split_at(mem::size_of::<Matrix<I, L0>>() / 4);
 		let (b, c) = bc.split_at(mem::size_of::<Matrix<L0, L1>>() / 4);
-		let a = a.chunks(I).map(|r| Vector(r.try_into().unwrap())).collect::<Vec<_>>();
-		let a = a.chunks(L0).map(|m| Matrix(m.try_into().unwrap())).next().unwrap();
-		let b = b.chunks(L0).map(|r| Vector(r.try_into().unwrap())).collect::<Vec<_>>();
-		let b = b.chunks(L1).map(|m| Matrix(m.try_into().unwrap())).next().unwrap();
-		let c = c.chunks(L1).map(|r| Vector(r.try_into().unwrap())).collect::<Vec<_>>();
-		let c = c.chunks(O).map(|m| Matrix(m.try_into().unwrap())).next().unwrap();
-		Self {
-			layers: (a, b, c),
-		}
+		let a = a
+			.chunks(I)
+			.map(|r| Vector(r.try_into().unwrap()))
+			.collect::<Vec<_>>();
+		let a = a
+			.chunks(L0)
+			.map(|m| Matrix(m.try_into().unwrap()))
+			.next()
+			.unwrap();
+		let b = b
+			.chunks(L0)
+			.map(|r| Vector(r.try_into().unwrap()))
+			.collect::<Vec<_>>();
+		let b = b
+			.chunks(L1)
+			.map(|m| Matrix(m.try_into().unwrap()))
+			.next()
+			.unwrap();
+		let c = c
+			.chunks(L1)
+			.map(|r| Vector(r.try_into().unwrap()))
+			.collect::<Vec<_>>();
+		let c = c
+			.chunks(O)
+			.map(|m| Matrix(m.try_into().unwrap()))
+			.next()
+			.unwrap();
+		Self { layers: (a, b, c) }
 	}
 
 	fn mutate(&mut self) {
@@ -94,7 +115,10 @@ impl super::Dna<f32> for NeuralNet {
 	}
 
 	fn spawn() -> Self {
-		let s = (mem::size_of::<Matrix<I, L0>>() + mem::size_of::<Matrix<L0, L1>>() + mem::size_of::<Matrix<L1, O>>()) / 4;
+		let s = (mem::size_of::<Matrix<I, L0>>()
+			+ mem::size_of::<Matrix<L0, L1>>()
+			+ mem::size_of::<Matrix<L1, O>>())
+			/ 4;
 		let mut r = thread_rng();
 		Self::deserialize((0..s).map(|_| r.gen_range(-10.0..10.0)).collect())
 	}
