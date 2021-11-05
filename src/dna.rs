@@ -3,6 +3,7 @@ use core::marker::PhantomData;
 use core::ops::Range;
 use std::collections::BinaryHeap;
 use rand::{Rng, thread_rng};
+use rayon::prelude::*;
 
 pub trait Dna<T>
 where
@@ -30,15 +31,19 @@ where
 	P: Dna<T>,
 	T: Clone;
 
-impl<P, T> Population<P, T>
+impl<'a, P: 'a, T> Population<P, T>
 where
-	P: Dna<T>,
-	T: Clone,
+	P: Dna<T> + Send + 'a,
+	T: Clone + Send,
+	[P]: IntoParallelRefIterator<'a, Item = &'a P>,
 {
 	/// # Returns
 	///
 	/// The best score achieved in this step.
-	pub fn step(&mut self, params: &PopulationParams, test: impl Fn(&mut P) -> usize) -> usize {
+	pub fn step<F>(&mut self, params: &PopulationParams, test: F) -> usize
+	where
+		F: Fn(&P) -> usize + Sync,
+	{
 		let mut r = thread_rng();
 
 		// Ensure we have enough "elites"
@@ -58,7 +63,7 @@ where
 		params.mutate.clone().for_each(|_| pop[r.gen_range(0..len)].mutate());
 
 		// Test each specimen
-		let scores = pop.iter_mut().map(test).collect::<Vec<_>>();
+		let pop = pop.into_par_iter().map(|p| Entry { score: test(&p), specimen: p, _marker: PhantomData }).collect::<Vec<_>>();
 
 		// Collect the best specimens
 		struct Entry<P, T>
@@ -109,9 +114,9 @@ where
 
 		let mut bh = BinaryHeap::default();
 		let mut max_score = 0;
-		for (specimen, score) in pop.into_iter().zip(scores) {
-			max_score = max_score.max(score);
-			bh.push(Entry { score, specimen, _marker: PhantomData });
+		for e in pop.into_iter() {
+			max_score = max_score.max(e.score);
+			bh.push(e);
 		}
 
 		// Save best specimens.
