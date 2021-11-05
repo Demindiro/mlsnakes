@@ -125,16 +125,20 @@ where
 {
 	/// # Returns
 	///
-	/// True if the snake went out of bounds.
-	pub fn step(&mut self, direction: Dir) {
+	/// true if the snake lives, false if dead.
+	pub fn step(&mut self, direction: Dir) -> bool {
 		let pred = |p: Pos| self.cells[usize::from(p.y)][usize::from(p.x)] == Cell::Apple;
 		if let Some((head, tail)) = self.snake.mov(pred, direction) {
-			(self.cells[usize::from(head.y)][usize::from(head.x)] == Cell::Apple)
-				.then(|| self.place_apple());
+			match self.cells[usize::from(head.y)][usize::from(head.x)] {
+				Cell::Empty => (),
+				Cell::Apple => self.place_apple(),
+				Cell::Snake => return false,
+			}
 			self.cells[usize::from(head.y)][usize::from(head.x)] = Cell::Snake;
 			self.cells[usize::from(tail.y)][usize::from(tail.x)] = Cell::Empty;
+			true
 		} else {
-			todo!();
+			false
 		}
 	}
 
