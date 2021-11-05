@@ -49,7 +49,7 @@ impl NeuralNet {
 	}
 
 	fn activate_f(x: f32) -> f32 {
-		assert!(!x.is_nan());
+		debug_assert!(!x.is_nan());
 		x / (1.0 + x.abs())
 	}
 }
