@@ -35,7 +35,7 @@ where
 
 impl<'a, P: 'a, T> Population<P, T>
 where
-	P: Dna<T> + Send + 'a,
+	P: Dna<T> + Send + Sync + 'a,
 	T: Clone + Send,
 	[P]: IntoParallelRefIterator<'a, Item = &'a P>,
 {
@@ -49,31 +49,40 @@ where
 		let mut r = thread_rng();
 
 		// Ensure we have enough "elites"
+		let t = std::time::Instant::now();
 		self.0.resize_with(params.elite_size, P::spawn);
+		dbg!(std::time::Instant::now() - t);
 
 		// Breed population
+		let t = std::time::Instant::now();
 		let len = self.0.len();
 		let mut pop = Vec::with_capacity(params.total_size);
-		pop.resize_with(params.total_size - len, || {
+		pop.par_extend((len..params.total_size).par_bridge().map(|_| {
+			let mut r = thread_rng();
 			P::deserialize(P::mix(
 				&self.0[r.gen_range(0..len)].serialize(),
 				&self.0[r.gen_range(0..len)].serialize(),
 			))
-		});
-		pop.extend(self.0.drain(..));
+		}));
+		dbg!(std::time::Instant::now() - t);
 
 		// Mutate some specimen
+		let t = std::time::Instant::now();
 		let len = pop.len();
 		params
 			.mutate
 			.clone()
 			.for_each(|_| pop[r.gen_range(0..len)].mutate());
+		dbg!(std::time::Instant::now() - t);
 
 		// Test each specimen
+		let t = std::time::Instant::now();
 		let pop = pop
 			.into_par_iter()
+			.with_min_len(8192)
 			.map(|p| Entry { score: test(&p), specimen: p, _marker: PhantomData })
 			.collect::<Vec<_>>();
+		dbg!(std::time::Instant::now() - t);
 
 		// Collect the best specimens
 		struct Entry<P, T>
@@ -125,10 +134,12 @@ where
 
 		let mut bh = BinaryHeap::default();
 		let mut max_score = 0;
+		let t = std::time::Instant::now();
 		for e in pop.into_iter() {
 			max_score = max_score.max(e.score);
 			bh.push(e);
 		}
+		dbg!(std::time::Instant::now() - t);
 
 		// Save best specimens.
 		self.0

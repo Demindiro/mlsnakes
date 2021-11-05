@@ -18,7 +18,7 @@ fn main() {
 	const S: u8 = 32;
 
 	let mut pop = Population::<NeuralNet, _>::default();
-	let params = PopulationParams { elite_size: 512, total_size: 8192 * 4, mutate: 8..128 };
+	let params = PopulationParams { elite_size: 2048, total_size: 8192 * 256, mutate: 32..256 };
 
 	let threshold = 50;
 	let initial_steps = S * 5;
@@ -93,6 +93,7 @@ fn main() {
 		}
 	}
 
+	// Train snakes to a sufficient level
 	let mut best = 0;
 	while best < threshold {
 		best = pop.step(&params, |pop| {
@@ -111,6 +112,7 @@ fn main() {
 		println!("{}", best);
 	}
 
+	// Showcase the best snake
 	let mut game = Game::<S, S>::default();
 	let mut max_steps = initial_steps;
 	let mut apples = 0;
