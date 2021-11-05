@@ -62,7 +62,7 @@ impl Snake {
 	/// # Returns
 	///
 	/// The new position of the head and the old position of the tail.
-	pub fn mov(&mut self, grow: bool, direction: Dir) -> Option<(Pos, Pos)> {
+	pub fn mov(&mut self, grow: impl FnOnce(Pos) -> bool, direction: Dir) -> Option<(Pos, Pos)> {
 		let (dx, dy) = match direction {
 			Dir::Right => (1, 0),
 			Dir::Down => (0, 1),
@@ -78,7 +78,7 @@ impl Snake {
 		if let (Ok(x), Ok(y)) = (x.try_into(), y.try_into()) {
 			self.head = (self.head + 1) & (self.body.len() - 1);
 			self.body[self.head] = Pos::new(x, y);
-			if grow {
+			if grow(Pos::new(x, y)) {
 				if self.head == self.tail {
 					let old_len = self.body.len();
 					self.body.resize(old_len * 2, Pos { x: 0, y: 0 });
@@ -102,7 +102,7 @@ impl Snake {
 	}
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Cell {
 	Empty,
 	Apple,
@@ -127,7 +127,8 @@ where
 	///
 	/// True if the snake went out of bounds.
 	pub fn step(&mut self, direction: Dir) {
-		if let Some((head, tail)) = self.snake.mov(false, direction) {
+		let pred = |p: Pos| self.cells[usize::from(p.y)][usize::from(p.x)] == Cell::Apple;
+		if let Some((head, tail)) = self.snake.mov(pred, direction) {
 			self.cells[usize::from(head.y)][usize::from(head.x)] = Cell::Snake;
 			self.cells[usize::from(tail.y)][usize::from(tail.x)] = Cell::Empty;
 		} else {
